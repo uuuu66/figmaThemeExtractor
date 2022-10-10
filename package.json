@@ -1,7 +1,7 @@
 {
-  "name": "figmaPluginBoilterTemplate",
+  "name": "mangoThemeExtractor",
   "version": "1.0.0",
-  "description": "Your Figma Plugin",
+  "description": "mango's theme extractor",
   "main": "dist/plugin.js",
   "scripts": {
     "watch": "webpack --watch",
