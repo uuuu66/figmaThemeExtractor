@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "module": "commonjs",
+    "target": "es2017",
     "lib": ["es6", "dom"],
     "typeRoots": [
       "./node_modules/@types",
@@ -9,6 +10,8 @@
       "src/index.d.ts"
     ],
     "jsx": "react",
+    "resolveJsonModule": true,
+
     "esModuleInterop": true,
     "moduleResolution": "node"
   },

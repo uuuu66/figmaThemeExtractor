@@ -1,0 +1,20 @@
+{
+  "KOR": {
+    "TITLE": "망고의 테마 추출기",
+    "LABEL_TYPE_TEXT": "텍스트",
+    "LABEL_TYPE_RECTANGLE": "사각형",
+    "LABE_SELECT": "선택",
+    "LANGUAGE": "언어",
+    "KOR": "한국어",
+    "ENG": "English"
+  },
+  "ENG": {
+    "TITLE": "Mango's Theme Extractor",
+    "LABEL_TYPE_TEXT": "Text",
+    "LABEL_TYPE_RECTANGLE": "Rectangle",
+    "LABEL_SELECT": "Select",
+    "LANGUAGE": "Language",
+    "KOR": "한국어",
+    "ENG": "English"
+  }
+}

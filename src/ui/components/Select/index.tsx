@@ -8,6 +8,7 @@ interface StyleProps {
 }
 const Select: React.FC<SelectProps<any>> = ({
   children,
+  placeholder,
   value,
   onSelect,
   options,
@@ -47,7 +48,7 @@ const Select: React.FC<SelectProps<any>> = ({
             <StyledMenu isOn>
               {options.find((option) => option.value === value)
                 ? options.find((option) => option.value === value).label
-                : "선택"}
+                : placeholder || "PULL"}
             </StyledMenu>
           </StyledOptionContainer>
         }

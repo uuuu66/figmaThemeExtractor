@@ -5,11 +5,17 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { PAGE_WIDTH, TYPE_RECTANGLE, TYPE_TEXT } from "../shared/constants";
-import { MessageType, SelectOptions } from "../shared/interfaces";
-import { Types } from "../shared/msgTypes";
-import { nodeTypeSelectOptions } from "../shared/options";
-import { postWindowMessage } from "../shared/utils";
+import strings from "../assets/strings.json";
+
+import { ENG, KOR, LANGUAGE, PAGE_WIDTH } from "../shared/constants";
+import {
+  LanguageMessageType,
+  MessageType,
+  SelectOptions,
+} from "../shared/interfaces";
+import { MsgTypes } from "../shared/msgTypes";
+import getOptions from "./shared/options";
+import { postWindowMessageToPlugin } from "../shared/utils";
 import Button from "./components/Button";
 import Select from "./components/Select";
 import {
@@ -21,41 +27,93 @@ import {
   Pages,
   TitleWrapper,
   MainContainer,
-} from "./styles";
+  EasterEggPage,
+} from "./shared/styles";
 import KongGif from "../assets/f2.gif";
+import SunFlower from "../assets/SunFlower.png";
 
 const App: React.FC = () => {
   const [type, setType] = useState<NodeType>();
-  const handleClickButton = () => {
-    const exMsg: MessageType<{}> = {
-      type: Types.EX,
-    };
-    postWindowMessage(exMsg);
-  };
+  const [stage, setStage] = useState<number>(1);
+  const [options, setOptions] = useState(getOptions(ENG));
+  const [language, setLanguage] = useState("");
+  const [disabled, setDisabled] = useState<boolean>(false);
+  const [isLoading, setLoading] = useState<boolean>(true);
   const navLeft = () => {
-    window.scrollBy({ left: -PAGE_WIDTH, behavior: "smooth" });
+    setDisabled(true);
+    if (stage - 1 >= 0) {
+      window.scrollTo({ left: (stage - 1) * PAGE_WIDTH, behavior: "smooth" });
+      setStage(stage - 1);
+    }
   };
   const navRight = () => {
-    window.scrollBy({ left: PAGE_WIDTH, behavior: "smooth" });
+    setDisabled(true);
+    if (stage + 1 < 4) {
+      window.scrollTo({ left: (stage + 1) * PAGE_WIDTH, behavior: "smooth" });
+      setStage(stage + 1);
+    }
   };
-  const pageRef = useRef<HTMLDivElement>(null);
+  const handleChangeLanguage = (e: SelectOptions<string>) => {
+    const msg: MessageType<LanguageMessageType> = {
+      type: MsgTypes.LANGUAGE_EDIT,
+      value: { country: e.value },
+    };
+    postWindowMessageToPlugin(msg);
+  };
   useEffect(() => {
     window.addEventListener("message", (e) => {
-      console.log(e);
+      const msgData = e.data.pluginMessage as MessageType;
+      const { type, value } = msgData;
+      switch (type) {
+        case MsgTypes.LANGUAGE_INFO:
+          const thisValue = value as LanguageMessageType;
+          setLanguage(thisValue.country);
+          setOptions(getOptions(thisValue.country));
+          break;
+        default:
+          break;
+      }
     });
+    window.scrollBy(600, 0);
+  }, []);
+
+  useEffect(() => {
+    if (disabled)
+      setTimeout(() => {
+        setDisabled(false);
+      }, 600);
+  }, [disabled]);
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 300);
   }, []);
   return (
     <>
       <GlobalStyles />
-
+      {isLoading && <LoadingWrapper></LoadingWrapper>}
       <MainContainer>
-        <LeftNavigation onClick={navLeft}></LeftNavigation>
+        <LeftNavigation
+          disabled={disabled}
+          onClick={!disabled ? navLeft : undefined}
+        ></LeftNavigation>
+        <EasterEggPage>
+          <img src={KongGif} width={60} height={60} />
+          made by Mango
+        </EasterEggPage>
         <Pages>
-          <TitleWrapper>Mango's theme extractor</TitleWrapper>
+          <TitleWrapper>{strings[language || KOR]?.TITLE}</TitleWrapper>
+
+          <Select
+            options={options?.languaseSelectOptions || []}
+            value={language}
+            placeholder="language"
+            onSelect={handleChangeLanguage}
+          />
         </Pages>
         <Pages>
           <Select
-            options={nodeTypeSelectOptions}
+            options={options?.nodeTypeSelectOptions || []}
             value={type}
             onSelect={(e) => {
               setType(e.value);
@@ -63,7 +121,12 @@ const App: React.FC = () => {
           />
         </Pages>
         <Pages>hi</Pages>
-        <RightNavigation onClick={navRight}> </RightNavigation>
+        <RightNavigation
+          disabled={disabled}
+          onClick={!disabled ? navRight : undefined}
+        >
+          {" "}
+        </RightNavigation>
       </MainContainer>
     </>
   );
