@@ -5,7 +5,8 @@
     "typeRoots": [
       "./node_modules/@types",
       "./node_modules/@figma",
-      "src/@types"
+      "src/@types",
+      "src/index.d.ts"
     ],
     "jsx": "react",
     "esModuleInterop": true,
