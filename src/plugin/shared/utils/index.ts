@@ -7,7 +7,7 @@ export interface GetTargetArgs {
 }
 export const getTarget = (
   args: GetTargetArgs
-): (SliceNode | SceneNode | Node)[] => {
+): (SliceNode | SceneNode | Node | TextNode)[] => {
   const { nodeId, returnValue, target } = args;
   const frameNode = figma.getNodeById(nodeId) as FrameNode;
 
@@ -72,10 +72,10 @@ export const groupByTextNodes = (args: GroupByTextNodesArgs) => {
     const nowValue = textMapByStandard.get(nowStandard);
     if (textMapByStandard.has(nowStandard)) {
       const newNowValue = [...nowValue];
-      newNowValue.push(targetNode.name);
+      newNowValue.push(targetNode.characters);
       textMapByStandard.set(nowStandard, newNowValue);
     } else {
-      textMapByStandard.set(nowStandard, [targetNode.name]);
+      textMapByStandard.set(nowStandard, [targetNode.characters]);
     }
   }
 

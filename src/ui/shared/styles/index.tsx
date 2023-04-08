@@ -1,11 +1,10 @@
+import React from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { PAGE_WIDTH } from "../../../shared/constants";
 
-export const FlexDiv = styled.div`
+export const FlexDiv = styled.div<{ style: React.CSSProperties }>`
   display: flex;
   justify-content: center;
-  width: 100%;
-  height: 100%;
 `;
 export const LoadingWrapper = styled.div`
   position: fixed;
@@ -21,16 +20,19 @@ export const TitleWrapper = styled.h1`
   font-size: 30px;
   font-weight: 700;
   width: 100%;
+  height: 40px;
   text-align: center;
 `;
-export const Pages = styled.div`
+export const SmallTitleWrapper = styled.h2`
+  font-size: 24px;
+  font-weight: 700;
+  width: 100%;
+  height: 30px;
+  text-align: center;
+`;
+export const PageContainer = styled.div`
   border-right: 2px black dotted;
-  display: flex;
   flex: 0 0 ${PAGE_WIDTH}px;
-  overflow-x: auto;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: flex-start;
 `;
 export const MainContainer = styled.div`
   width: calc(${PAGE_WIDTH}px * 6);
@@ -51,22 +53,38 @@ export const LeftNavigation = styled.div<{ disabled?: boolean }>`
       disabled ? "transparent" : "rgba(157, 152, 152, 0.7)"};
   }
 `;
-export const EasterEggPage = styled.div`
+export const EasterEggPageContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   flex: 0 0 600px;
 `;
-export const RightNavigation = styled.div<{ disabled?: boolean }>`
+export const RightNavigation = styled.div<{
+  disabled?: boolean;
+  isReady?: boolean;
+}>`
   width: 30px;
   height: 100%;
-  background-color: transparent;
+  background-color: ${({ isReady }) =>
+    isReady ? "rgba(202, 202, 202, 0.9)" : "transparent"};
   position: fixed;
   z-index: 1300;
-
+  animation: ${({ disabled, isReady }) =>
+    disabled ? "" : isReady ? "blink 5s infinite linear" : ""};
+  @keyframes blink {
+    0% {
+      background-color: rgba(202, 202, 202, 0.9);
+    }
+    50% {
+      background-color: rgba(232, 227, 227, 0.9);
+    }
+    100% {
+      background-color: rgba(202, 202, 202, 0.9);
+    }
+  }
   right: 0;
   transition: all 0.5s;
-  cursor: pointer;
+  cursor: ${({ isReady }) => (isReady ? "pointer" : "default")};
   &:hover {
     background-color: ${({ disabled }) =>
       disabled ? "transparent" : "rgba(157, 152, 152, 0.7)"};

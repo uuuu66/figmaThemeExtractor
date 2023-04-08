@@ -5,7 +5,7 @@ export interface MessageType<T = {}> {
 }
 export interface SelectOptions<T> {
   label: string;
-  value: T | string;
+  value: T;
   key?: string;
 }
 export interface SelectProps<T> {
@@ -24,10 +24,13 @@ export interface RGB {
 export interface Strings {
   LABEL_TYPE_TEXT: string;
   LABEL_TYPE_RECTANGLE: string;
-  LABE_SELECT: string;
+  LABEL_SELECT: string;
+  LABEL_COLOR: string;
   LANGUAGE: string;
   KOR: string;
   ENG: string;
+  TITLE: string;
+  TITLE_CHOOSE_THEME_TYPE: string;
 }
 export interface LanguageMessageType {
   country: string;

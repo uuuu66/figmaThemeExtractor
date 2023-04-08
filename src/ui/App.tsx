@@ -1,80 +1,74 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import strings from "../assets/strings.json";
+import React, { useEffect, useMemo, useState } from "react";
 
-import { ENG, KOR, LANGUAGE, PAGE_WIDTH } from "../shared/constants";
+import { ENG, KOR, PAGE_WIDTH } from "../shared/constants";
+
 import {
-  LanguageMessageType,
-  MessageType,
-  SelectOptions,
-} from "../shared/interfaces";
-import { MsgTypes } from "../shared/msgTypes";
-import getOptions from "./shared/options";
-import { postWindowMessageToPlugin } from "../shared/utils";
-import Button from "./components/Button";
-import Select from "./components/Select";
-import {
-  FlexDiv,
   GlobalStyles,
   LoadingWrapper,
   LeftNavigation,
   RightNavigation,
-  Pages,
-  TitleWrapper,
   MainContainer,
-  EasterEggPage,
 } from "./shared/styles";
-import KongGif from "../assets/f2.gif";
-import SunFlower from "../assets/SunFlower.png";
+import { useCallback } from "react";
+import EasterEggPage from "./pages/EasterEggPage";
+import { ThemeType } from "../shared/types";
+import MainPage from "./pages/MainPage";
+import { MessageType, SelectOptions } from "../shared/interfaces";
+import { MsgTypes } from "../shared/msgTypes";
+import { postWindowMessageToPlugin } from "../shared/utils";
 
 const App: React.FC = () => {
-  const [type, setType] = useState<NodeType>();
   const [stage, setStage] = useState<number>(1);
-  const [options, setOptions] = useState(getOptions(ENG));
-  const [language, setLanguage] = useState("");
+
   const [disabled, setDisabled] = useState<boolean>(false);
+  const [theme, setTheme] = useState<ThemeType>("COLOR");
   const [isLoading, setLoading] = useState<boolean>(true);
   const navLeft = () => {
     setDisabled(true);
     if (stage - 1 >= 0) {
-      window.scrollTo({ left: (stage - 1) * PAGE_WIDTH, behavior: "smooth" });
+      window.scrollTo({
+        left: (stage - 1) * PAGE_WIDTH + 20,
+        behavior: "smooth",
+      });
       setStage(stage - 1);
     }
   };
+
   const navRight = () => {
     setDisabled(true);
     if (stage + 1 < 4) {
-      window.scrollTo({ left: (stage + 1) * PAGE_WIDTH, behavior: "smooth" });
+      window.scrollTo({
+        left: (stage + 1) * PAGE_WIDTH + 20,
+        behavior: "smooth",
+      });
       setStage(stage + 1);
     }
   };
-  const handleChangeLanguage = (e: SelectOptions<string>) => {
-    const msg: MessageType<LanguageMessageType> = {
-      type: MsgTypes.LANGUAGE_EDIT,
-      value: { country: e.value },
-    };
-    postWindowMessageToPlugin(msg);
+  const handleClickNextButton = () => {
+    navRight();
+  };
+  const getNextStageIsReady = useCallback(() => {
+    switch (stage) {
+      case 0:
+        return true;
+      case 1:
+        if (isLoading) return false;
+        return true;
+      case 2:
+        return false;
+      case 3:
+        return false;
+      case 4:
+        return false;
+      case 5:
+        return false;
+    }
+  }, [stage, isLoading, disabled]);
+  const handleSelectThemeType = (e: SelectOptions<ThemeType>) => {
+    setTheme(e.value);
   };
   useEffect(() => {
-    window.addEventListener("message", (e) => {
-      const msgData = e.data.pluginMessage as MessageType;
-      const { type, value } = msgData;
-      switch (type) {
-        case MsgTypes.LANGUAGE_INFO:
-          const thisValue = value as LanguageMessageType;
-          setLanguage(thisValue.country);
-          setOptions(getOptions(thisValue.country));
-          break;
-        default:
-          break;
-      }
-    });
-    window.scrollBy(600, 0);
+    window.scrollBy(PAGE_WIDTH + 20, 0);
   }, []);
 
   useEffect(() => {
@@ -88,45 +82,28 @@ const App: React.FC = () => {
       setLoading(false);
     }, 300);
   }, []);
+
   return (
     <>
       <GlobalStyles />
       {isLoading && <LoadingWrapper></LoadingWrapper>}
+
       <MainContainer>
         <LeftNavigation
-          disabled={disabled}
+          disabled={disabled || stage === 0}
           onClick={!disabled ? navLeft : undefined}
         ></LeftNavigation>
-        <EasterEggPage>
-          <img src={KongGif} width={60} height={60} />
-          made by Mango
-        </EasterEggPage>
-        <Pages>
-          <TitleWrapper>{strings[language || KOR]?.TITLE}</TitleWrapper>
-
-          <Select
-            options={options?.languaseSelectOptions || []}
-            value={language}
-            placeholder="language"
-            onSelect={handleChangeLanguage}
-          />
-        </Pages>
-        <Pages>
-          <Select
-            options={options?.nodeTypeSelectOptions || []}
-            value={type}
-            onSelect={(e) => {
-              setType(e.value);
-            }}
-          />
-        </Pages>
-        <Pages>hi</Pages>
+        <EasterEggPage />
+        <MainPage
+          onGoNextStep={handleClickNextButton}
+          selectedType={theme}
+          onSelectType={handleSelectThemeType}
+        />
         <RightNavigation
-          disabled={disabled}
-          onClick={!disabled ? navRight : undefined}
-        >
-          {" "}
-        </RightNavigation>
+          disabled={disabled || !getNextStageIsReady()}
+          isReady={getNextStageIsReady()}
+          onClick={!disabled && getNextStageIsReady() ? navRight : undefined}
+        ></RightNavigation>
       </MainContainer>
     </>
   );
