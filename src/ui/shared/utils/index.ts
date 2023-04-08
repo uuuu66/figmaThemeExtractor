@@ -1,5 +1,5 @@
 import { ThemeType } from "../../../shared/types";
-import { descriptions } from "../constants";
+import { checkDescriptions, descriptions } from "../constants";
 
 export const translateThemeType = (theme: ThemeType) => {
   switch (theme) {
@@ -15,5 +15,13 @@ export const getThemeDescription = (theme: ThemeType) => {
       return descriptions.COLOR;
     case "TEXT":
       return descriptions.TEXT;
+  }
+};
+export const getCheckDescription = (theme: ThemeType) => {
+  switch (theme) {
+    case "COLOR":
+      return checkDescriptions.COLOR;
+    case "TEXT":
+      return checkDescriptions.TEXT;
   }
 };

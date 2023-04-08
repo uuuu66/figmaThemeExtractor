@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
-import { ENG, KOR, PAGE_WIDTH } from "../shared/constants";
+import { PAGE_WIDTH } from "../shared/constants";
 
 import {
   GlobalStyles,
@@ -16,13 +16,18 @@ import MainPage from "./pages/MainPage";
 import { MessageType, SelectOptions } from "../shared/interfaces";
 import { MsgTypes } from "../shared/msgTypes";
 import { postWindowMessageToPlugin } from "../shared/utils";
+import CheckPage from "./pages/CheckPage";
+import useInterval from "./shared/hooks/useInterval";
+import ResultPage from "./pages/ResultPage";
 
 const App: React.FC = () => {
   const [stage, setStage] = useState<number>(1);
-
+  const [isSelect, setIsSelect] = useState(false);
   const [disabled, setDisabled] = useState<boolean>(false);
   const [theme, setTheme] = useState<ThemeType>("COLOR");
+  const [result, setResult] = useState<string>("");
   const [isLoading, setLoading] = useState<boolean>(true);
+  const [ignores, setIgnores] = useState<string>("Hex,Name");
   const navLeft = () => {
     setDisabled(true);
     if (stage - 1 >= 0) {
@@ -33,7 +38,24 @@ const App: React.FC = () => {
       setStage(stage - 1);
     }
   };
-
+  const requestExtractTheme = () => {
+    const msg: MessageType = {
+      type: MsgTypes.EXTRACT,
+      value: {
+        type: theme,
+        ignores: ignores.split(",").map((val) => val.trim()),
+      },
+    };
+    console.log(msg);
+    postWindowMessageToPlugin(msg);
+  };
+  const requestCheckSelectFrame = () => {
+    const msg: MessageType = {
+      type: MsgTypes.CHECK_SELECT,
+      value: ignores.split(",").map((val) => val.trim()),
+    };
+    postWindowMessageToPlugin(msg);
+  };
   const navRight = () => {
     setDisabled(true);
     if (stage + 1 < 4) {
@@ -45,6 +67,8 @@ const App: React.FC = () => {
     }
   };
   const handleClickNextButton = () => {
+    if (stage === 1) requestCheckSelectFrame();
+    if (stage === 2) requestExtractTheme();
     navRight();
   };
   const getNextStageIsReady = useCallback(() => {
@@ -55,6 +79,7 @@ const App: React.FC = () => {
         if (isLoading) return false;
         return true;
       case 2:
+        if (isSelect) return true;
         return false;
       case 3:
         return false;
@@ -63,10 +88,33 @@ const App: React.FC = () => {
       case 5:
         return false;
     }
-  }, [stage, isLoading, disabled]);
+  }, [stage, isLoading, disabled, isSelect]);
+  const navToStage = (stage: number) => {
+    window.scrollTo({
+      left: (stage - 1) * PAGE_WIDTH + 20,
+      behavior: "smooth",
+    });
+    setStage(stage);
+  };
   const handleSelectThemeType = (e: SelectOptions<ThemeType>) => {
     setTheme(e.value);
   };
+  const handleChangeIgnores = (e: ChangeEvent<HTMLInputElement>) => {
+    setIgnores(e.target.value);
+  };
+  const handleOnMessage = (e: MessageEvent) => {
+    if (e.data.pluginMessage.type === MsgTypes.CHECK_SELECT)
+      setIsSelect(e.data.pluginMessage.value);
+    if (e.data.pluginMessage.type === MsgTypes.EXTRACT) {
+      if (e.data.pluginMessage.value === false) navToStage(2);
+      else setResult("color = " + JSON.stringify(e.data.pluginMessage.value));
+    }
+  };
+  useEffect(() => {
+    window.addEventListener("message", handleOnMessage);
+
+    return () => window.removeEventListener("message", handleOnMessage);
+  }, []);
   useEffect(() => {
     window.scrollBy(PAGE_WIDTH + 20, 0);
   }, []);
@@ -82,7 +130,13 @@ const App: React.FC = () => {
       setLoading(false);
     }, 300);
   }, []);
-
+  useEffect(() => {
+    if (theme === "COLOR") setIgnores("Hex,Name");
+    else setIgnores("Font weight,Bold,Medium,Regular,Name,Display");
+  }, [theme]);
+  useInterval(() => {
+    requestCheckSelectFrame();
+  }, 1000);
   return (
     <>
       <GlobalStyles />
@@ -99,10 +153,23 @@ const App: React.FC = () => {
           selectedType={theme}
           onSelectType={handleSelectThemeType}
         />
+        <CheckPage
+          onGoNextStep={handleClickNextButton}
+          handleChangeIgnores={handleChangeIgnores}
+          ignores={ignores}
+          theme={theme}
+          isSelect={isSelect}
+          setIsSelect={setIsSelect}
+        ></CheckPage>
+        <ResultPage result={result} />
         <RightNavigation
           disabled={disabled || !getNextStageIsReady()}
           isReady={getNextStageIsReady()}
-          onClick={!disabled && getNextStageIsReady() ? navRight : undefined}
+          onClick={
+            !disabled && getNextStageIsReady()
+              ? handleClickNextButton
+              : undefined
+          }
         ></RightNavigation>
       </MainContainer>
     </>
