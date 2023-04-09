@@ -1,32 +1,69 @@
-import { LANGUAGE } from "../shared/constants";
-import { LanguageMessageType, MessageType } from "../shared/interfaces";
+import {
+  ExtractResultMessageType,
+  FontProperties,
+  MessageType,
+} from "../shared/interfaces";
 import { MsgTypes } from "../shared/msgTypes";
-import { getTarget, groupByTextNodes } from "./shared/utils";
+import { ThemeType } from "../shared/types";
+import { extractColorTheme, extractFontTheme, getTarget } from "./shared/utils";
 
 figma.showUI(__html__, { width: 600, height: 300 });
-figma.clientStorage.getAsync(LANGUAGE).then((value) => {
-  const languageMessage: MessageType<LanguageMessageType> = {
-    type: MsgTypes.LANGUAGE_INFO,
-    value: { country: value || "KOR" },
-  };
-  figma.ui.postMessage(languageMessage);
-});
+
 figma.ui.onmessage = (msg: MessageType<any>) => {
-  if (msg.type === MsgTypes.SELECT_TYPE) {
-    const selectedId = figma.currentPage.selection[0]?.id;
-    const rectangles: RectangleNode[] = [];
-    const text: TextNode[] = [];
-    getTarget({ nodeId: selectedId, returnValue: text, target: "TEXT" });
-  }
-  if (msg.type === MsgTypes.LANGUAGE_EDIT) {
-    figma.clientStorage.setAsync(LANGUAGE, msg.value.country).then(() => {
-      figma.clientStorage.getAsync(LANGUAGE).then((value) => {
-        const languageMessage: MessageType<LanguageMessageType> = {
-          type: MsgTypes.LANGUAGE_INFO,
-          value: { country: value || "KOR" },
+  switch (msg.type) {
+    case MsgTypes.SELECT_TYPE:
+      {
+        const selectedId = figma.currentPage.selection[0]?.id;
+        const text: TextNode[] = [];
+        getTarget({
+          nodeId: selectedId,
+          returnValue: text,
+          target: "TEXT",
+        });
+      }
+      break;
+    case MsgTypes.CHECK_SELECT:
+      {
+        const isSelect = figma.currentPage.selection.length > 0;
+        const postmsg: MessageType = {
+          type: MsgTypes.CHECK_SELECT,
+          value: isSelect,
         };
-        figma.ui.postMessage(languageMessage);
-      });
-    });
+        figma.ui.postMessage(postmsg);
+      }
+      break;
+    case MsgTypes.EXTRACT:
+      {
+        const isSelect = figma.currentPage.selection.length > 0;
+        if (!isSelect) {
+          const postmsg: MessageType = {
+            type: MsgTypes.EXTRACT,
+            value: false,
+          };
+          figma.ui.postMessage(postmsg);
+        } else {
+          const type: ThemeType = msg.value.type;
+          const selectedId = figma.currentPage.selection[0]?.id;
+          let answer: { [index: string]: string | FontProperties } = {};
+          let fontWeight: { [index: string]: number } = {};
+          if (type === "COLOR") {
+            answer = extractColorTheme(selectedId, msg.value.keys).answer;
+          } else {
+            const result = extractFontTheme(selectedId, msg.value.keys);
+            answer = result.answer;
+            fontWeight = result.fontWeight;
+          }
+
+          const extractedMessage: MessageType<ExtractResultMessageType> = {
+            type: MsgTypes.EXTRACT,
+            value:
+              type === "COLOR"
+                ? { answer, themeType: type }
+                : { fontWeight, answer, themeType: type },
+          };
+          figma.ui.postMessage(extractedMessage);
+        }
+      }
+      break;
   }
 };
