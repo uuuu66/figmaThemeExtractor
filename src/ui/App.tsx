@@ -13,7 +13,12 @@ import { useCallback } from "react";
 import EasterEggPage from "./pages/EasterEggPage";
 import { ThemeType } from "../shared/types";
 import MainPage from "./pages/MainPage";
-import { MessageType, SelectOptions } from "../shared/interfaces";
+import {
+  ExtractResultMessageType,
+  FontProperties,
+  MessageType,
+  SelectOptions,
+} from "../shared/interfaces";
 import { MsgTypes } from "../shared/msgTypes";
 import { postWindowMessageToPlugin } from "../shared/utils";
 import CheckPage from "./pages/CheckPage";
@@ -27,7 +32,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeType>("COLOR");
   const [result, setResult] = useState<string>("");
   const [isLoading, setLoading] = useState<boolean>(true);
-  const [ignores, setIgnores] = useState<string>("Hex,Name");
+  const [keys, setKeys] = useState<string>("Hex,Name");
   const navLeft = () => {
     setDisabled(true);
     if (stage - 1 >= 0) {
@@ -43,7 +48,7 @@ const App: React.FC = () => {
       type: MsgTypes.EXTRACT,
       value: {
         type: theme,
-        ignores: ignores.split(",").map((val) => val.trim()),
+        keys: keys.split(",").map((val) => val.trim()),
       },
     };
     console.log(msg);
@@ -52,7 +57,7 @@ const App: React.FC = () => {
   const requestCheckSelectFrame = () => {
     const msg: MessageType = {
       type: MsgTypes.CHECK_SELECT,
-      value: ignores.split(",").map((val) => val.trim()),
+      value: keys.split(",").map((val) => val.trim()),
     };
     postWindowMessageToPlugin(msg);
   };
@@ -99,15 +104,46 @@ const App: React.FC = () => {
   const handleSelectThemeType = (e: SelectOptions<ThemeType>) => {
     setTheme(e.value);
   };
-  const handleChangeIgnores = (e: ChangeEvent<HTMLInputElement>) => {
-    setIgnores(e.target.value);
+  const handleChangekeys = (e: ChangeEvent<HTMLInputElement>) => {
+    setKeys(e.target.value);
   };
   const handleOnMessage = (e: MessageEvent) => {
     if (e.data.pluginMessage.type === MsgTypes.CHECK_SELECT)
       setIsSelect(e.data.pluginMessage.value);
     if (e.data.pluginMessage.type === MsgTypes.EXTRACT) {
-      if (e.data.pluginMessage.value === false) navToStage(2);
-      else setResult("color = " + JSON.stringify(e.data.pluginMessage.value));
+      const messageData = e.data.pluginMessage
+        .value as ExtractResultMessageType;
+
+      if (!messageData) navToStage(2);
+      else if (messageData.themeType === "COLOR")
+        setResult("const color = " + JSON.stringify(messageData.answer));
+      else if (messageData.themeType === "TEXT") {
+        let convertedResultTojsObect = "";
+        convertedResultTojsObect += "{\n";
+        const entries = Object.entries(messageData.answer);
+        for (let i = 0; i < entries.length; i += 1) {
+          const [key, properties] = entries[i];
+          convertedResultTojsObect += `${key} :` + `{ `;
+          const properTiesEntries = Object.entries(properties);
+          for (const entry of properTiesEntries) {
+            if (entry[0] !== "font-weight")
+              convertedResultTojsObect +=
+                `"${entry[0].trim()}"` + ":" + `"${entry[1].trim()}",\n`;
+            else
+              convertedResultTojsObect +=
+                `"${entry[0].trim()}"` + ":" + `${entry[1].trim()},\n`;
+          }
+          convertedResultTojsObect += "\n},\n";
+        }
+        convertedResultTojsObect += "\n},\n";
+        setResult(
+          "const fontWeight = " +
+            JSON.stringify(messageData.fontWeight) +
+            "\n" +
+            "const fonts = " +
+            convertedResultTojsObect
+        );
+      }
     }
   };
   useEffect(() => {
@@ -131,8 +167,8 @@ const App: React.FC = () => {
     }, 300);
   }, []);
   useEffect(() => {
-    if (theme === "COLOR") setIgnores("Hex,Name");
-    else setIgnores("Font weight,Bold,Medium,Regular,Name,Display");
+    if (theme === "COLOR") setKeys("Hex,Name");
+    else setKeys("Font weight,Bold,Medium,Regular,Name,Display");
   }, [theme]);
   useInterval(() => {
     requestCheckSelectFrame();
@@ -155,8 +191,8 @@ const App: React.FC = () => {
         />
         <CheckPage
           onGoNextStep={handleClickNextButton}
-          handleChangeIgnores={handleChangeIgnores}
-          ignores={ignores}
+          handleChangekeys={handleChangekeys}
+          keys={keys}
           theme={theme}
           isSelect={isSelect}
           setIsSelect={setIsSelect}

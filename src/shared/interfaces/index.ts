@@ -1,3 +1,5 @@
+import { ThemeType } from "../types";
+
 export interface MessageType<T = {}> {
   type: string;
 
@@ -35,4 +37,16 @@ export interface Strings {
 export interface LanguageMessageType {
   country: string;
   payload?: any;
+}
+export interface FontProperties {
+  "font-size": string;
+  "font-weight": number;
+  "line-height": string;
+}
+export interface ExtractResultMessageType {
+  answer: {
+    [index: string]: string | FontProperties;
+  };
+  fontWeight?: { [index: string]: number };
+  themeType?: ThemeType;
 }

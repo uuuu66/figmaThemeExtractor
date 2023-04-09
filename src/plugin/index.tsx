@@ -1,4 +1,8 @@
-import { MessageType } from "../shared/interfaces";
+import {
+  ExtractResultMessageType,
+  FontProperties,
+  MessageType,
+} from "../shared/interfaces";
 import { MsgTypes } from "../shared/msgTypes";
 import { ThemeType } from "../shared/types";
 import { extractColorTheme, extractFontTheme, getTarget } from "./shared/utils";
@@ -40,15 +44,22 @@ figma.ui.onmessage = (msg: MessageType<any>) => {
         } else {
           const type: ThemeType = msg.value.type;
           const selectedId = figma.currentPage.selection[0]?.id;
-          let answer = {};
+          let answer: { [index: string]: string | FontProperties } = {};
+          let fontWeight: { [index: string]: number } = {};
           if (type === "COLOR") {
-            answer = extractColorTheme(selectedId, msg.value.ignores);
+            answer = extractColorTheme(selectedId, msg.value.keys).answer;
           } else {
-            extractFontTheme(selectedId, msg.value.ignores);
+            const result = extractFontTheme(selectedId, msg.value.keys);
+            answer = result.answer;
+            fontWeight = result.fontWeight;
           }
-          const extractedMessage: MessageType = {
+
+          const extractedMessage: MessageType<ExtractResultMessageType> = {
             type: MsgTypes.EXTRACT,
-            value: answer,
+            value:
+              type === "COLOR"
+                ? { answer, themeType: type }
+                : { fontWeight, answer, themeType: type },
           };
           figma.ui.postMessage(extractedMessage);
         }

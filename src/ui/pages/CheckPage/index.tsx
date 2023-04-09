@@ -4,24 +4,25 @@ import { MessageType } from "../../../shared/interfaces";
 import { MsgTypes } from "../../../shared/msgTypes";
 import { ThemeType } from "../../../shared/types";
 import { PageContainer } from "../../shared/styles";
+
 import { getCheckDescription, translateThemeType } from "../../shared/utils";
 
 interface Props {
   isSelect: boolean;
   theme: ThemeType;
-  ignores: string;
+  keys: string;
   onGoNextStep: () => void;
-  handleChangeIgnores: React.ChangeEventHandler;
+  handleChangekeys: React.ChangeEventHandler;
   setIsSelect: (e: boolean) => void;
 }
 
 const CheckPage: FunctionComponent<Props> = function CheckPage({
   isSelect,
-  ignores,
+  keys,
   theme,
   onGoNextStep,
   setIsSelect,
-  handleChangeIgnores,
+  handleChangekeys,
 }) {
   return (
     <PageContainer>
@@ -34,11 +35,13 @@ const CheckPage: FunctionComponent<Props> = function CheckPage({
           <Title>선택된 테마 </Title>
           <div>{translateThemeType(theme)}</div>
         </Wrapper>
-        <Wrapper>
-          <Title>무시할 글자</Title>
-          <Desc>(,)로 구분함</Desc>
-          <input value={ignores} onChange={handleChangeIgnores} />
-        </Wrapper>
+        {theme === "COLOR" ? (
+          <Wrapper>
+            <Title>"무시할 글자" </Title>
+            <Desc>(,)로 구분함</Desc>
+            <input value={keys} onChange={handleChangekeys} />
+          </Wrapper>
+        ) : null}
         <Wrapper style={{ marginTop: "24px" }}>
           <Desc>{getCheckDescription(theme)}</Desc>
         </Wrapper>

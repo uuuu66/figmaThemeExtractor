@@ -1,8 +1,9 @@
+import { ExtractResultMessageType } from "../../../shared/interfaces";
 import { rgbToHex } from "../../../shared/utils";
 const splitValues = [" ", ",", ".", "/", "\n"];
 export interface GetTargetArgs {
   nodeId: string;
-  returnValue: (SliceNode | SceneNode | Node)[];
+  returnValue: (SliceNode | SceneNode | Node | any)[];
   target: NodeType;
 }
 export const getTarget = (
@@ -16,6 +17,7 @@ export const getTarget = (
     switch (nowChild.type) {
       case target:
         returnValue.push(nowChild);
+
         break;
       case "INSTANCE":
       case "COMPONENT_SET":
@@ -42,6 +44,14 @@ export const getRectangleColor = (args: GetRectangleStylesArgs): string => {
 
   const fills = targetRectangle.fills as SolidPaint[];
   return rgbToHex(fills[0]?.color);
+};
+
+const sortByX = (a: string, b: string) => {
+  const aNode = figma.getNodeById(a) as TextNode;
+  const bNode = figma.getNodeById(b) as TextNode;
+  const aX = aNode.absoluteBoundingBox.x;
+  const bX = bNode.absoluteBoundingBox.x;
+  return aX - bX;
 };
 export interface GroupByTextNodesArgs {
   targetNodes: TextNode[];
@@ -71,7 +81,7 @@ export const groupByTextNodes = (args: GroupByTextNodesArgs) => {
     }
     const nowValue = textMapByStandard.get(nowStandard);
     if (textMapByStandard.has(nowStandard)) {
-      const newNowValue = [...nowValue];
+      const newNowValue = [...nowValue].sort(sortByX);
 
       newNowValue.push(targetNode.id);
       textMapByStandard.set(nowStandard, newNowValue);
@@ -114,7 +124,10 @@ const groupByRectangles = (args: GroupByRectanglesArgs) => {
 
   return returnValue;
 };
-export const extractColorTheme = (selectedId: string, ignores?: string[]) => {
+export const extractColorTheme = (
+  selectedId: string,
+  keys?: string[]
+): ExtractResultMessageType => {
   const texts: TextNode[] = [];
   getTarget({
     nodeId: selectedId,
@@ -129,22 +142,21 @@ export const extractColorTheme = (selectedId: string, ignores?: string[]) => {
   });
 
   const answer = {};
-  addPropertyToAnswer(answer, rectangles, ignores || ["Hex", "Name"]);
-  return answer;
+  addPropertyToAnswer(answer, rectangles, keys || ["Hex", "Name"]);
+  return { answer };
 };
 
 const addPropertyToAnswer = (
   answer: Object,
   rectangles: RectangleNode[],
-  ignores: string[]
+  keys: string[]
 ) => {
   const textGroup = groupByRectangles({ targetNodes: rectangles });
 
   for (let i = 0; i < textGroup.length; i += 1) {
-    let key = "";
     for (let j = 0; j < textGroup[i].length; j += 1) {
       let text = textGroup[i][j] as string;
-      if (!ignores.includes(text)) {
+      if (!keys.includes(text)) {
         if (!text.startsWith("#")) {
           for (const splitValue of splitValues) {
             text = text.split(splitValue).join("");
@@ -161,51 +173,50 @@ const addPropertyToAnswer = (
   }
   return answer;
 };
-export const extractFontTheme = (selectedId: string, ignores?: string[]) => {
+export const extractFontTheme = (
+  selectedId: string,
+  keys?: string[]
+): ExtractResultMessageType => {
   let texts = [];
   getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
-  texts = groupByTextNodes({ targetNodes: texts, standard: "parent" });
-  const answer = {};
-  console.log(
-    texts.map((val) =>
-      val.map((text) => (figma.getNodeById(text) as TextNode).characters)
-    )
-  );
-  for (let row of texts) {
-    row = row.sort((a, b) => {
-      const bCode = (figma.getNodeById(b) as TextNode).characters.charCodeAt(0);
-      const aCode = (figma.getNodeById(a) as TextNode).characters.charCodeAt(0);
-      if (bCode >= 65 && aCode >= 65) return 0;
-
-      if (bCode >= 65 && aCode < 65) return bCode - aCode;
-      return 0;
-    });
-    console.log(
-      row.map((text) => (figma.getNodeById(text) as TextNode).characters)
-    );
-    if (row.length === 4) {
-      const node = figma.getNodeById(row[0]) as TextNode;
-      let key = node.characters;
-      for (let i = 0; i < splitValues.length; i += 1) {
-        key = key.split(splitValues[i]).join("");
-      }
-      key = key.replace(/-/, "");
-      key = key.replace(/_/, "");
-      key = key.trim();
-      const properties = {
-        "font-size": "24px",
-        "font-weight": 700,
-        "line-height": "24px",
-      };
-
-      properties["font-size"] = (node.fontSize as number) + "px";
-      properties["font-weight"] = node.fontWeight as number;
-      properties["line-height"] = (
-        figma.getNodeById(row[3]) as TextNode
-      ).characters.trim();
-      if (!ignores.includes(key)) answer[key] = properties;
-    }
+  const groups = groupByTextNodes({ targetNodes: texts, standard: "parent" });
+  let textNodeGroups: TextNode[][] = [];
+  for (let i = 0; i < groups.length; i += 1) {
+    textNodeGroups[i] = groups[i]
+      .sort(sortByX)
+      .map((val) => figma.getNodeById(val) as TextNode);
   }
-  console.log(answer);
-  return answer;
+  const fontWeight = {};
+  const answer = {};
+  for (let i = 0; i < textNodeGroups.length; i += 1) {
+    if (keys.includes(textNodeGroups[i][0].characters)) {
+      continue;
+    }
+    if (textNodeGroups[i].length !== 4) {
+      continue;
+    }
+    const firstNode = textNodeGroups[i][0];
+    let key = firstNode.characters;
+    let fontWeightKey = textNodeGroups[i][1].characters;
+
+    for (const splitValue of splitValues) {
+      key = key.split(splitValue).join("");
+      fontWeightKey = fontWeightKey.split(splitValue).join("");
+    }
+    let firstChar = key.charAt(0);
+    let others = key.slice(1);
+    key = firstChar.toLowerCase() + others;
+    key = key.replace(/-/, "");
+    let firstCharFontWeight = fontWeightKey.charAt(0);
+    let othersFontweight = fontWeightKey.slice(1);
+    fontWeightKey = firstCharFontWeight.toLowerCase() + othersFontweight;
+    fontWeightKey = fontWeightKey.replace(/-/, "_");
+    const properties = {};
+    properties["font-size"] = (firstNode.fontSize as number) + "px";
+    fontWeight[fontWeightKey] = firstNode.fontWeight;
+    properties["font-weight"] = `fontWeight.${fontWeightKey}`;
+    properties["line-height"] = textNodeGroups[i][3].characters;
+    answer[key] = properties;
+  }
+  return { fontWeight, answer };
 };
