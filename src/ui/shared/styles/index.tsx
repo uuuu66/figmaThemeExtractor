@@ -30,6 +30,13 @@ export const SmallTitleWrapper = styled.h2`
   height: 30px;
   text-align: center;
 `;
+export const AccountNumberContainer = styled.div`
+  display: flex;
+  width: 100%;
+  height: 100;
+  justify-content: center;
+  align-items: center;
+`;
 export const PageContainer = styled.div`
   border-right: 2px black dotted;
   flex: 0 0 ${PAGE_WIDTH}px;

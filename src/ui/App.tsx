@@ -8,6 +8,8 @@ import {
   LeftNavigation,
   RightNavigation,
   MainContainer,
+  PageContainer,
+  AccountNumberContainer,
 } from "./shared/styles";
 import { useCallback } from "react";
 import EasterEggPage from "./pages/EasterEggPage";
@@ -24,8 +26,10 @@ import { postWindowMessageToPlugin } from "../shared/utils";
 import CheckPage from "./pages/CheckPage";
 import useInterval from "./shared/hooks/useInterval";
 import ResultPage from "./pages/ResultPage";
+import MyAccountPage from "./pages/MyAccountPage";
 
 const App: React.FC = () => {
+  const myAccount = "100046614549";
   const [stage, setStage] = useState<number>(1);
   const [isSelect, setIsSelect] = useState(false);
   const [disabled, setDisabled] = useState<boolean>(false);
@@ -63,13 +67,12 @@ const App: React.FC = () => {
   };
   const navRight = () => {
     setDisabled(true);
-    if (stage + 1 < 4) {
+    if (getNextStageIsReady())
       window.scrollTo({
         left: (stage + 1) * PAGE_WIDTH + 20,
         behavior: "smooth",
       });
-      setStage(stage + 1);
-    }
+    setStage(stage + 1);
   };
   const handleClickNextButton = () => {
     if (stage === 1) requestCheckSelectFrame();
@@ -86,12 +89,10 @@ const App: React.FC = () => {
       case 2:
         if (isSelect) return true;
         return false;
-      case 3:
+      case 3 + myAccount.length + 1:
         return false;
-      case 4:
-        return false;
-      case 5:
-        return false;
+      default:
+        return true;
     }
   }, [stage, isLoading, disabled, isSelect]);
   const navToStage = (stage: number) => {
@@ -198,6 +199,13 @@ const App: React.FC = () => {
           setIsSelect={setIsSelect}
         ></CheckPage>
         <ResultPage result={result} />
+        {myAccount.split("").map((val, index) => (
+          <PageContainer key={"a" + index}>
+            {index === 0 && <div>받아적으삼</div>}
+            <AccountNumberContainer>{val}</AccountNumberContainer>
+          </PageContainer>
+        ))}
+        <MyAccountPage />
         <RightNavigation
           disabled={disabled || !getNextStageIsReady()}
           isReady={getNextStageIsReady()}
