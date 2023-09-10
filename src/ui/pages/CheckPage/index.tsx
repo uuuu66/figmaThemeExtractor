@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { MessageType } from "../../../shared/interfaces";
 import { MsgTypes } from "../../../shared/msgTypes";
 import { ThemeType } from "../../../shared/types";
+import Select from "../../components/Select";
 import { PageContainer } from "../../shared/styles";
 
 import { getCheckDescription, translateThemeType } from "../../shared/utils";
@@ -13,6 +14,7 @@ interface Props {
   keys: string;
   onGoNextStep: () => void;
   handleChangekeys: React.ChangeEventHandler;
+  handleSelectCssType:(e:string)=>void;
   setIsSelect: (e: boolean) => void;
 }
 
@@ -22,7 +24,7 @@ const CheckPage: FunctionComponent<Props> = function CheckPage({
   theme,
   onGoNextStep,
   setIsSelect,
-  handleChangekeys,
+  handleChangekeys,handleSelectCssType
 }) {
   return (
     <PageContainer>
@@ -41,7 +43,12 @@ const CheckPage: FunctionComponent<Props> = function CheckPage({
             <Desc>(,)로 구분함</Desc>
             <input value={keys} onChange={handleChangekeys} />
           </Wrapper>
-        ) : null}
+        ) : <Wrapper style={{position:"relative"}} >
+          <Title>css Type</Title>
+              <div style={{position:"absolute", right:"50px"}}>
+            <Select  value={keys} onSelect={(e)=>{handleSelectCssType(e.value)}} options={[{label:"styled-comp",value:"STYLED_COMPONENT"},{label:"테일윈드",value:"TAILWIND"}]}/>
+            </div>
+          </Wrapper>}
         <Wrapper style={{ marginTop: "24px" }}>
           <Desc>{getCheckDescription(theme)}</Desc>
         </Wrapper>

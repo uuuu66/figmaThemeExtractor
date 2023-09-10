@@ -1,6 +1,10 @@
+import { css } from "styled-components";
 import { ExtractResultMessageType } from "../../../shared/interfaces";
+import { CSSLibraryType } from "../../../shared/types";
 import { rgbToHex } from "../../../shared/utils";
 const splitValues = [" ", ",", ".", "/", "\n"];
+const TEXT_STANDARD="parent";
+
 export interface GetTargetArgs {
   nodeId: string;
   returnValue: (SliceNode | SceneNode | Node | any)[];
@@ -175,48 +179,116 @@ const addPropertyToAnswer = (
 };
 export const extractFontTheme = (
   selectedId: string,
-  keys?: string[]
-): ExtractResultMessageType => {
-  let texts = [];
-  getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
-  const groups = groupByTextNodes({ targetNodes: texts, standard: "parent" });
-  let textNodeGroups: TextNode[][] = [];
-  for (let i = 0; i < groups.length; i += 1) {
-    textNodeGroups[i] = groups[i]
-      .sort(sortByX)
-      .map((val) => figma.getNodeById(val) as TextNode);
-  }
-  const fontWeight = {};
-  const answer = {};
-  for (let i = 0; i < textNodeGroups.length; i += 1) {
-    if (keys.includes(textNodeGroups[i][0].characters)) {
-      continue;
-    }
-    if (textNodeGroups[i].length !== 4) {
-      continue;
-    }
-    const firstNode = textNodeGroups[i][0];
-    let key = firstNode.characters;
-    let fontWeightKey = textNodeGroups[i][1].characters;
+  cssType?:CSSLibraryType, //무시할 글자들
 
-    for (const splitValue of splitValues) {
-      key = key.split(splitValue).join("");
-      fontWeightKey = fontWeightKey.split(splitValue).join("");
-    }
-    let firstChar = key.charAt(0);
-    let others = key.slice(1);
-    key = firstChar.toLowerCase() + others;
-    key = key.replace(/-/, "");
-    let firstCharFontWeight = fontWeightKey.charAt(0);
-    let othersFontweight = fontWeightKey.slice(1);
-    fontWeightKey = firstCharFontWeight.toLowerCase() + othersFontweight;
-    fontWeightKey = fontWeightKey.replace(/-/, "_");
-    const properties = {};
-    properties["font-size"] = (firstNode.fontSize as number) + "px";
-    fontWeight[fontWeightKey] = firstNode.fontWeight;
-    properties["font-weight"] = `fontWeight.${fontWeightKey}`;
-    properties["line-height"] = textNodeGroups[i][3].characters;
-    answer[key] = properties;
-  }
-  return { fontWeight, answer };
+): ExtractResultMessageType => {
+  switch(cssType){
+    case "TAILWIND":
+      return extractTailwindTextTheme(selectedId,[]);
+    case "STYLED_COMPONENT":
+      default:
+        return extractStyledComponentTextTheme(selectedId,[])
+      }
+  
 };
+const extractTailwindTextTheme=( selectedId: string,
+  ignoreStrings?: string[])=>{
+    let texts = [];
+    getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
+    //텍스트노드인 애들 추출 
+    const textNodeIds= groupByTextNodes({ targetNodes: texts, standard: TEXT_STANDARD });
+ 
+    let textNodes: TextNode[][] = [];
+
+    for (let i = 0; i < textNodeIds.length; i += 1) {
+      textNodes[i] = textNodeIds[i]
+        .sort(sortByX)
+        .map((val) => figma.getNodeById(val) as TextNode);
+      
+    }
+
+    const answer = {};
+    const fontWeight={}
+    const nodes={};
+    //같은 조부모로 묶기 
+      for (let i = 0; i < textNodes.length; i += 1) {
+        if (ignoreStrings.includes(textNodes[i][0].characters)) {
+          //
+          continue;
+        }
+        const nowTextNode=textNodes[i][0];
+      
+        if(!nodes[nowTextNode.parent.parent.id])
+          nodes[nowTextNode.parent.parent.id]=[];
+        nodes[nowTextNode.parent.parent.id].push(nowTextNode);
+        
+      }
+
+    //묶인 것을 오브젝트로 만들기
+      for(let i=0;i<Object.entries<TextNode[]>(nodes).length;i+=1){
+        const node=Object.entries<TextNode[]>(nodes)[i][1];
+     
+        let key=node[0].characters;
+        for (const splitValue of splitValues) {
+          key = key.split(splitValue).join("");
+    
+        }
+        key = key.replace("-", "_");
+        const properties = {};
+        properties["font-size"] = (node[1].fontSize as number) + "px";
+        properties["line-height"] = `${(node[1].lineHeight as {value:number}).value?String( Math.ceil(Number((node[1].lineHeight as {value:number}).value))):String(node[1].lineHeight)}%`;
+
+        fontWeight[key]=node[1].fontWeight
+        answer[key]=[properties["font-size"],{lineHeight:properties["line-height"]}]; 
+      }
+      return {answer,fontWeight};
+}
+const extractStyledComponentTextTheme=
+(  selectedId: string,
+  ignoreStrings?: string[],)=>{
+      let texts = [];
+      getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
+      //텍스트노드인 애들 추출 
+      const textNodeIds= groupByTextNodes({ targetNodes: texts, standard: TEXT_STANDARD });
+      let textNodes: TextNode[][] = [];
+      for (let i = 0; i < textNodeIds.length; i += 1) {
+        textNodes[i] = textNodeIds[i]
+          .sort(sortByX)
+          .map((val) => figma.getNodeById(val) as TextNode);
+        
+      }
+  
+      const answer = {};
+      const nodes={};
+      //같은 조부모로 묶기 
+        for (let i = 0; i < textNodes.length; i += 1) {
+          if (ignoreStrings.includes(textNodes[i][0].characters)) {
+            //
+            continue;
+          }
+          const nowTextNode=textNodes[i][0];
+        
+          if(!nodes[nowTextNode.parent.parent.id])
+            nodes[nowTextNode.parent.parent.id]=[];
+          nodes[nowTextNode.parent.parent.id].push(nowTextNode);
+          
+        }
+
+      //묶인 것을 오브젝트로 만들기
+        for(let i=0;i<Object.entries<TextNode[]>(nodes).length;i+=1){
+          const node=Object.entries<TextNode[]>(nodes)[i][1];
+       
+          let key=node[0].characters;
+          for (const splitValue of splitValues) {
+            key = key.split(splitValue).join("");
+      
+          }
+          key = key.replace("-", "_");
+          const properties = {};
+          properties["font-size"] = (node[1].fontSize as number) + "px";
+          properties["line-height"] = `${(node[1].lineHeight as {value:number}).value?String( Math.ceil(Number((node[1].lineHeight as {value:number}).value))):String(node[1].lineHeight)}%`;
+          properties["font-weight"]=node[1].fontWeight;
+          answer[key]=properties; 
+        }
+      return {  answer };
+}

@@ -42,24 +42,26 @@ figma.ui.onmessage = (msg: MessageType<any>) => {
           };
           figma.ui.postMessage(postmsg);
         } else {
+         /* msg.value types:텍스트인지 색상인지  keys: 추출할 문자 기준 혹은 무시할 문자  */
           const type: ThemeType = msg.value.type;
           const selectedId = figma.currentPage.selection[0]?.id;
           let answer: { [index: string]: string | FontProperties } = {};
           let fontWeight: { [index: string]: number } = {};
+          console.log(msg.value.keys)
           if (type === "COLOR") {
             answer = extractColorTheme(selectedId, msg.value.keys).answer;
           } else {
-            const result = extractFontTheme(selectedId, msg.value.keys);
+            const result = extractFontTheme(selectedId, msg.value.keys[0]);
             answer = result.answer;
             fontWeight = result.fontWeight;
           }
-
+      
           const extractedMessage: MessageType<ExtractResultMessageType> = {
             type: MsgTypes.EXTRACT,
             value:
               type === "COLOR"
                 ? { answer, themeType: type }
-                : { fontWeight, answer, themeType: type },
+                : { answer, themeType: type ,fontWeight},
           };
           figma.ui.postMessage(extractedMessage);
         }

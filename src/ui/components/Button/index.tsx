@@ -1,7 +1,7 @@
-import React from "react";
+import React, { PropsWithChildren } from "react";
 import styled from "styled-components";
 
-export interface Props {
+export interface Props extends PropsWithChildren<any>{
   size?: "small" | "middle" | "large";
   onClick?: React.MouseEventHandler;
   disabled?: boolean;

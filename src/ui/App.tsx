@@ -108,6 +108,9 @@ const App: React.FC = () => {
   const handleChangekeys = (e: ChangeEvent<HTMLInputElement>) => {
     setKeys(e.target.value);
   };
+  const handleSelectCssType=(e:string)=>{
+    setKeys(e);
+  }
   const handleOnMessage = (e: MessageEvent) => {
     if (e.data.pluginMessage.type === MsgTypes.CHECK_SELECT)
       setIsSelect(e.data.pluginMessage.value);
@@ -119,30 +122,11 @@ const App: React.FC = () => {
       else if (messageData.themeType === "COLOR")
         setResult("const color = " + JSON.stringify(messageData.answer));
       else if (messageData.themeType === "TEXT") {
-        let convertedResultTojsObect = "";
-        convertedResultTojsObect += "{\n";
-        const entries = Object.entries(messageData.answer);
-        for (let i = 0; i < entries.length; i += 1) {
-          const [key, properties] = entries[i];
-          convertedResultTojsObect += `${key} :` + `{ `;
-          const properTiesEntries = Object.entries(properties);
-          for (const entry of properTiesEntries) {
-            if (entry[0] !== "font-weight")
-              convertedResultTojsObect +=
-                `"${entry[0].trim()}"` + ":" + `"${entry[1].trim()}",\n`;
-            else
-              convertedResultTojsObect +=
-                `"${entry[0].trim()}"` + ":" + `${entry[1].trim()},\n`;
-          }
-          convertedResultTojsObect += "\n},\n";
-        }
-        convertedResultTojsObect += "\n},\n";
+        if(messageData.fontWeight)
+        setResult(`const fontSizeTheme =${JSON.stringify(messageData.answer)} \n const fontWeightTheme=${JSON.stringify(messageData.fontWeight)}`)
+        else
         setResult(
-          "const fontWeight = " +
-            JSON.stringify(messageData.fontWeight) +
-            "\n" +
-            "const fonts = " +
-            convertedResultTojsObect
+          JSON.stringify(messageData.answer)
         );
       }
     }
@@ -169,7 +153,7 @@ const App: React.FC = () => {
   }, []);
   useEffect(() => {
     if (theme === "COLOR") setKeys("Hex,Name");
-    else setKeys("Font weight,Bold,Medium,Regular,Name,Display");
+    else setKeys("TAILWIND");
   }, [theme]);
   useInterval(() => {
     requestCheckSelectFrame();
@@ -193,6 +177,7 @@ const App: React.FC = () => {
         <CheckPage
           onGoNextStep={handleClickNextButton}
           handleChangekeys={handleChangekeys}
+          handleSelectCssType={handleSelectCssType}
           keys={keys}
           theme={theme}
           isSelect={isSelect}
