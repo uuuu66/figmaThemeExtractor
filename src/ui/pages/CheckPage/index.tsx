@@ -14,7 +14,7 @@ interface Props {
   keys: string;
   onGoNextStep: () => void;
   handleChangekeys: React.ChangeEventHandler;
-  handleSelectCssType:(e:string)=>void;
+  handleSelectCssType: (e: string) => void;
   setIsSelect: (e: boolean) => void;
 }
 
@@ -24,8 +24,47 @@ const CheckPage: FunctionComponent<Props> = function CheckPage({
   theme,
   onGoNextStep,
   setIsSelect,
-  handleChangekeys,handleSelectCssType
+  handleChangekeys,
+  handleSelectCssType,
 }) {
+  const renderInputs = (theme: ThemeType) => {
+    switch (theme) {
+      case "COLOR":
+        return (
+          <Wrapper>
+            <Title>"무시할 글자" </Title>
+            <Desc>(,)로 구분함</Desc>
+            <input value={keys} onChange={handleChangekeys} />
+          </Wrapper>
+        );
+      case "TEXT":
+        return (
+          <Wrapper style={{ position: "relative" }}>
+            <Title>css Type</Title>
+            <div style={{ position: "absolute", right: "50px" }}>
+              <Select
+                value={keys}
+                onSelect={(e) => {
+                  handleSelectCssType(e.value);
+                }}
+                options={[
+                  { label: "styled-comp", value: "STYLED_COMPONENT" },
+                  { label: "테일윈드", value: "TAILWIND" },
+                ]}
+              />
+            </div>
+          </Wrapper>
+        );
+      case "SVG":
+      default:
+        return (
+          <Wrapper style={{ position: "relative" }}>
+            <Title>폴더 선택</Title>
+            <input type="file" id="filepicker" name="fileList" />
+          </Wrapper>
+        );
+    }
+  };
   return (
     <PageContainer>
       <Container>
@@ -37,18 +76,7 @@ const CheckPage: FunctionComponent<Props> = function CheckPage({
           <Title>선택된 테마 </Title>
           <div>{translateThemeType(theme)}</div>
         </Wrapper>
-        {theme === "COLOR" ? (
-          <Wrapper>
-            <Title>"무시할 글자" </Title>
-            <Desc>(,)로 구분함</Desc>
-            <input value={keys} onChange={handleChangekeys} />
-          </Wrapper>
-        ) : <Wrapper style={{position:"relative"}} >
-          <Title>css Type</Title>
-              <div style={{position:"absolute", right:"50px"}}>
-            <Select  value={keys} onSelect={(e)=>{handleSelectCssType(e.value)}} options={[{label:"styled-comp",value:"STYLED_COMPONENT"},{label:"테일윈드",value:"TAILWIND"}]}/>
-            </div>
-          </Wrapper>}
+        {renderInputs(theme)}
         <Wrapper style={{ marginTop: "24px" }}>
           <Desc>{getCheckDescription(theme)}</Desc>
         </Wrapper>

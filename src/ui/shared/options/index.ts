@@ -5,5 +5,6 @@ import { translateThemeType } from "../utils";
 const themeTypeSelectOptions: SelectOptions<ThemeType>[] = [
   { label: translateThemeType("TEXT"), value: "TEXT" },
   { label: translateThemeType("COLOR"), value: "COLOR" },
+  {label:translateThemeType("SVG"),value:"SVG"}
 ];
 export { themeTypeSelectOptions };

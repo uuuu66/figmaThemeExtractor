@@ -1,8 +1,8 @@
 {
   "name": "mangoThemeExtractor",
-  "id": "1160513606824421283",
+  "id": "1284479955563520058",
   "api": "1.0.0",
   "main": "dist/plugin.js",
-  "editorType": ["figma", "figjam"],
+  "editorType": ["figma"],
   "ui": "dist/ui.html"
 }

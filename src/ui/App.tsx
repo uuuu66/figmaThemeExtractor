@@ -55,7 +55,7 @@ const App: React.FC = () => {
         keys: keys.split(",").map((val) => val.trim()),
       },
     };
-    console.log(msg);
+
     postWindowMessageToPlugin(msg);
   };
   const requestCheckSelectFrame = () => {
@@ -108,9 +108,9 @@ const App: React.FC = () => {
   const handleChangekeys = (e: ChangeEvent<HTMLInputElement>) => {
     setKeys(e.target.value);
   };
-  const handleSelectCssType=(e:string)=>{
+  const handleSelectCssType = (e: string) => {
     setKeys(e);
-  }
+  };
   const handleOnMessage = (e: MessageEvent) => {
     if (e.data.pluginMessage.type === MsgTypes.CHECK_SELECT)
       setIsSelect(e.data.pluginMessage.value);
@@ -119,15 +119,32 @@ const App: React.FC = () => {
         .value as ExtractResultMessageType;
 
       if (!messageData) navToStage(2);
-      else if (messageData.themeType === "COLOR")
-        setResult("const color = " + JSON.stringify(messageData.answer));
-      else if (messageData.themeType === "TEXT") {
-        if(messageData.fontWeight)
-        setResult(`const fontSizeTheme =${JSON.stringify(messageData.answer)} \n const fontWeightTheme=${JSON.stringify(messageData.fontWeight)}`)
-        else
-        setResult(
-          JSON.stringify(messageData.answer)
-        );
+      else {
+        switch (messageData.themeType) {
+          case "COLOR":
+            {
+              setResult("const color = " + JSON.stringify(messageData.answer));
+            }
+            break;
+          case "TEXT":
+            {
+              setResult(
+                `const fontSizeTheme =${JSON.stringify(
+                  messageData.answer
+                )} \n const fontWeightTheme=${JSON.stringify(
+                  messageData.fontWeight
+                )}`
+              );
+            }
+            break;
+
+          case "SVG":
+            {
+              console.log(messageData.answer);
+              setResult(JSON.stringify(messageData.answer));
+            }
+            break;
+        }
       }
     }
   };

@@ -3,14 +3,15 @@ import { ExtractResultMessageType } from "../../../shared/interfaces";
 import { CSSLibraryType } from "../../../shared/types";
 import { rgbToHex } from "../../../shared/utils";
 const splitValues = [" ", ",", ".", "/", "\n"];
-const TEXT_STANDARD="parent";
+const TEXT_STANDARD = "parent";
 
-export interface GetTargetArgs {
+interface GetTargetArgs {
   nodeId: string;
   returnValue: (SliceNode | SceneNode | Node | any)[];
   target: NodeType;
 }
-export const getTarget = (
+//자식 노드에서 선택된 유형의 모든 노드를 담는 배열 배출
+const getTarget = (
   args: GetTargetArgs
 ): (SliceNode | SceneNode | Node | TextNode)[] => {
   const { nodeId, returnValue, target } = args;
@@ -40,10 +41,10 @@ export const getTarget = (
   }
   return returnValue;
 };
-export interface GetRectangleStylesArgs {
+interface GetRectangleStylesArgs {
   targetRectangle: RectangleNode;
 }
-export const getRectangleColor = (args: GetRectangleStylesArgs): string => {
+const getRectangleColor = (args: GetRectangleStylesArgs): string => {
   const { targetRectangle } = args;
 
   const fills = targetRectangle.fills as SolidPaint[];
@@ -57,12 +58,12 @@ const sortByX = (a: string, b: string) => {
   const bX = bNode.absoluteBoundingBox.x;
   return aX - bX;
 };
-export interface GroupByTextNodesArgs {
+interface GroupByTextNodesArgs {
   targetNodes: TextNode[];
 
   standard?: "x" | "y" | "parent" | "X" | "Y" | "PARENT";
 }
-export const groupByTextNodes = (args: GroupByTextNodesArgs) => {
+const groupByTextNodes = (args: GroupByTextNodesArgs) => {
   const { targetNodes, standard = "parent" } = args;
 
   const textMapByStandard = new Map();
@@ -98,7 +99,7 @@ export const groupByTextNodes = (args: GroupByTextNodesArgs) => {
 
   return returnValue[0];
 };
-export interface GroupByRectanglesArgs {
+interface GroupByRectanglesArgs {
   targetNodes: RectangleNode[];
 }
 const groupByRectangles = (args: GroupByRectanglesArgs) => {
@@ -128,7 +129,7 @@ const groupByRectangles = (args: GroupByRectanglesArgs) => {
 
   return returnValue;
 };
-export const extractColorTheme = (
+const extractColorTheme = (
   selectedId: string,
   keys?: string[]
 ): ExtractResultMessageType => {
@@ -177,118 +178,149 @@ const addPropertyToAnswer = (
   }
   return answer;
 };
-export const extractFontTheme = (
+const extractFontTheme = (
   selectedId: string,
-  cssType?:CSSLibraryType, //무시할 글자들
-
+  cssType?: CSSLibraryType //무시할 글자들
 ): ExtractResultMessageType => {
-  switch(cssType){
+  switch (cssType) {
     case "TAILWIND":
-      return extractTailwindTextTheme(selectedId,[]);
+      return extractTailwindTextTheme(selectedId, []);
     case "STYLED_COMPONENT":
-      default:
-        return extractStyledComponentTextTheme(selectedId,[])
-      }
-  
+    default:
+      return extractStyledComponentTextTheme(selectedId, []);
+  }
 };
-const extractTailwindTextTheme=( selectedId: string,
-  ignoreStrings?: string[])=>{
-    let texts = [];
-    getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
-    //텍스트노드인 애들 추출 
-    const textNodeIds= groupByTextNodes({ targetNodes: texts, standard: TEXT_STANDARD });
- 
-    let textNodes: TextNode[][] = [];
+const extractTailwindTextTheme = (
+  selectedId: string,
+  ignoreStrings?: string[]
+) => {
+  let texts = [];
+  getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
+  //텍스트노드인 애들 추출
+  const textNodeIds = groupByTextNodes({
+    targetNodes: texts,
+    standard: TEXT_STANDARD,
+  });
 
-    for (let i = 0; i < textNodeIds.length; i += 1) {
-      textNodes[i] = textNodeIds[i]
-        .sort(sortByX)
-        .map((val) => figma.getNodeById(val) as TextNode);
-      
+  let textNodes: TextNode[][] = [];
+
+  for (let i = 0; i < textNodeIds.length; i += 1) {
+    textNodes[i] = textNodeIds[i]
+      .sort(sortByX)
+      .map((val) => figma.getNodeById(val) as TextNode);
+  }
+
+  const answer = {};
+  const fontWeight = {};
+  const nodes = {};
+  //같은 조부모로 묶기
+  for (let i = 0; i < textNodes.length; i += 1) {
+    if (ignoreStrings.includes(textNodes[i][0].characters)) {
+      //
+      continue;
     }
+    const nowTextNode = textNodes[i][0];
 
-    const answer = {};
-    const fontWeight={}
-    const nodes={};
-    //같은 조부모로 묶기 
-      for (let i = 0; i < textNodes.length; i += 1) {
-        if (ignoreStrings.includes(textNodes[i][0].characters)) {
-          //
-          continue;
-        }
-        const nowTextNode=textNodes[i][0];
-      
-        if(!nodes[nowTextNode.parent.parent.id])
-          nodes[nowTextNode.parent.parent.id]=[];
-        nodes[nowTextNode.parent.parent.id].push(nowTextNode);
-        
-      }
+    if (!nodes[nowTextNode.parent.parent.id])
+      nodes[nowTextNode.parent.parent.id] = [];
+    nodes[nowTextNode.parent.parent.id].push(nowTextNode);
+  }
 
-    //묶인 것을 오브젝트로 만들기
-      for(let i=0;i<Object.entries<TextNode[]>(nodes).length;i+=1){
-        const node=Object.entries<TextNode[]>(nodes)[i][1];
-     
-        let key=node[0].characters;
-        for (const splitValue of splitValues) {
-          key = key.split(splitValue).join("");
-    
-        }
-        key = key.replace("-", "_");
-        const properties = {};
-        properties["font-size"] = (node[1].fontSize as number) + "px";
-        properties["line-height"] = `${(node[1].lineHeight as {value:number}).value?String( Math.ceil(Number((node[1].lineHeight as {value:number}).value))):String(node[1].lineHeight)}%`;
+  //묶인 것을 오브젝트로 만들기
+  for (let i = 0; i < Object.entries<TextNode[]>(nodes).length; i += 1) {
+    const node = Object.entries<TextNode[]>(nodes)[i][1];
 
-        fontWeight[key]=node[1].fontWeight
-        answer[key]=[properties["font-size"],{lineHeight:properties["line-height"]}]; 
-      }
-      return {answer,fontWeight};
-}
-const extractStyledComponentTextTheme=
-(  selectedId: string,
-  ignoreStrings?: string[],)=>{
-      let texts = [];
-      getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
-      //텍스트노드인 애들 추출 
-      const textNodeIds= groupByTextNodes({ targetNodes: texts, standard: TEXT_STANDARD });
-      let textNodes: TextNode[][] = [];
-      for (let i = 0; i < textNodeIds.length; i += 1) {
-        textNodes[i] = textNodeIds[i]
-          .sort(sortByX)
-          .map((val) => figma.getNodeById(val) as TextNode);
-        
-      }
-  
-      const answer = {};
-      const nodes={};
-      //같은 조부모로 묶기 
-        for (let i = 0; i < textNodes.length; i += 1) {
-          if (ignoreStrings.includes(textNodes[i][0].characters)) {
-            //
-            continue;
-          }
-          const nowTextNode=textNodes[i][0];
-        
-          if(!nodes[nowTextNode.parent.parent.id])
-            nodes[nowTextNode.parent.parent.id]=[];
-          nodes[nowTextNode.parent.parent.id].push(nowTextNode);
-          
-        }
+    let key = node[0].characters;
+    for (const splitValue of splitValues) {
+      key = key.split(splitValue).join("");
+    }
+    key = key.replace("-", "_");
+    const properties = {};
+    properties["font-size"] = (node[1].fontSize as number) + "px";
+    properties["line-height"] = `${
+      (node[1].lineHeight as { value: number }).value
+        ? String(
+            Math.ceil(Number((node[1].lineHeight as { value: number }).value))
+          )
+        : String(node[1].lineHeight)
+    }%`;
 
-      //묶인 것을 오브젝트로 만들기
-        for(let i=0;i<Object.entries<TextNode[]>(nodes).length;i+=1){
-          const node=Object.entries<TextNode[]>(nodes)[i][1];
-       
-          let key=node[0].characters;
-          for (const splitValue of splitValues) {
-            key = key.split(splitValue).join("");
-      
-          }
-          key = key.replace("-", "_");
-          const properties = {};
-          properties["font-size"] = (node[1].fontSize as number) + "px";
-          properties["line-height"] = `${(node[1].lineHeight as {value:number}).value?String( Math.ceil(Number((node[1].lineHeight as {value:number}).value))):String(node[1].lineHeight)}%`;
-          properties["font-weight"]=node[1].fontWeight;
-          answer[key]=properties; 
-        }
-      return {  answer };
-}
+    fontWeight[key] = node[1].fontWeight;
+    answer[key] = [
+      properties["font-size"],
+      { lineHeight: properties["line-height"] },
+    ];
+  }
+  return { answer, fontWeight };
+};
+const extractStyledComponentTextTheme = (
+  selectedId: string,
+  ignoreStrings?: string[]
+) => {
+  let texts = [];
+  getTarget({ target: "TEXT", returnValue: texts, nodeId: selectedId });
+  //텍스트노드인 애들 추출
+  const textNodeIds = groupByTextNodes({
+    targetNodes: texts,
+    standard: TEXT_STANDARD,
+  });
+  let textNodes: TextNode[][] = [];
+  for (let i = 0; i < textNodeIds.length; i += 1) {
+    textNodes[i] = textNodeIds[i]
+      .sort(sortByX)
+      .map((val) => figma.getNodeById(val) as TextNode);
+  }
+
+  const answer = {};
+  const nodes = {};
+  //같은 조부모로 묶기
+  for (let i = 0; i < textNodes.length; i += 1) {
+    if (ignoreStrings.includes(textNodes[i][0].characters)) {
+      //
+      continue;
+    }
+    const nowTextNode = textNodes[i][0];
+
+    if (!nodes[nowTextNode.parent.parent.id])
+      nodes[nowTextNode.parent.parent.id] = [];
+    nodes[nowTextNode.parent.parent.id].push(nowTextNode);
+  }
+
+  //묶인 것을 오브젝트로 만들기
+  for (let i = 0; i < Object.entries<TextNode[]>(nodes).length; i += 1) {
+    const node = Object.entries<TextNode[]>(nodes)[i][1];
+
+    let key = node[0].characters;
+    for (const splitValue of splitValues) {
+      key = key.split(splitValue).join("");
+    }
+    key = key.replace("-", "_");
+    const properties = {};
+    properties["font-size"] = (node[1].fontSize as number) + "px";
+    properties["line-height"] = `${
+      (node[1].lineHeight as { value: number }).value
+        ? String(
+            Math.ceil(Number((node[1].lineHeight as { value: number }).value))
+          )
+        : String(node[1].lineHeight)
+    }%`;
+    properties["font-weight"] = node[1].fontWeight;
+    answer[key] = properties;
+  }
+  return { answer };
+};
+const extractSVGTheme = async (selectedId: string) => {
+  const vectors: VectorNode[] = [];
+  getTarget({ target: "VECTOR", nodeId: selectedId, returnValue: vectors });
+
+  const answer = {};
+  for (const vector of vectors) {
+    //@ts-ignore
+    const svg = await vector.exportAsync({ format: "SVG_STRING" });
+    answer[figma.getNodeById(vector.parent.id).name] = svg;
+  }
+
+  return { answer };
+};
+
+export { getTarget, extractFontTheme, extractColorTheme, extractSVGTheme };
